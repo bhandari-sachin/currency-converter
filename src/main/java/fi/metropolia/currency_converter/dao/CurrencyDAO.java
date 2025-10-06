@@ -1,116 +1,113 @@
 package fi.metropolia.currency_converter.dao;
 
-import fi.metropolia.currency_converter.datasource.DatabaseConfig;
 import fi.metropolia.currency_converter.model.Currency;
-import java.sql.*;
-import java.util.ArrayList;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityManagerFactory;
+import jakarta.persistence.Persistence;
 import java.util.List;
 
 /**
- * Data Access Object for Currency entities.
+ * Data Access Object for Currency entities using JPA.
  * Handles all database operations related to currencies.
+ * Uses EntityManager per request pattern.
  */
 public class CurrencyDAO {
+    private static EntityManagerFactory emf;
 
-    /**
-     * Creates a new database connection.
-     * @return A new Connection object
-     * @throws SQLException if connection fails
-     */
-    private Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(
-                DatabaseConfig.getUrl(),
-                DatabaseConfig.getUser(),
-                DatabaseConfig.getPassword()
+    public CurrencyDAO() {
+        if (emf == null) {
+            synchronized (CurrencyDAO.class) {
+                if (emf == null) {
+                    try {
+                        emf = Persistence.createEntityManagerFactory("currency_pu");
+                    } catch (Exception e) {
+                        throw new RuntimeException("Failed to create EntityManagerFactory: " + e.getMessage(), e);
+                    }
+                }
+            }
+        }
+    }
+
+    private <T> T executeWithTransaction(DAOOperation<T> operation) {
+        EntityManager em = null;
+        try {
+            em = emf.createEntityManager();
+            em.getTransaction().begin();
+            T result = operation.execute(em);
+            em.getTransaction().commit();
+            return result;
+        } catch (Exception e) {
+            if (em != null && em.getTransaction().isActive()) {
+                em.getTransaction().rollback();
+            }
+            throw new RuntimeException("Database operation failed: " + e.getMessage(), e);
+        } finally {
+            if (em != null && em.isOpen()) em.close();
+        }
+    }
+
+    private <T> T executeReadOnly(DAOOperation<T> operation) {
+        EntityManager em = null;
+        try {
+            em = emf.createEntityManager();
+            return operation.execute(em);
+        } catch (Exception e) {
+            throw new RuntimeException("Database operation failed: " + e.getMessage(), e);
+        } finally {
+            if (em != null && em.isOpen()) em.close();
+        }
+    }
+
+    public double getExchangeRate(String abbreviation) {
+        return executeReadOnly(em -> {
+            Currency currency = em.find(Currency.class, abbreviation);
+            if (currency == null) {
+                throw new RuntimeException("Currency not found: " + abbreviation);
+            }
+            return currency.getRateToUSD();
+        });
+    }
+
+    public List<Currency> getAllCurrencies() {
+        return executeReadOnly(em ->
+                em.createQuery("SELECT c FROM Currency c ORDER BY c.abbreviation", Currency.class)
+                        .getResultList()
         );
     }
 
-    /**
-     * Retrieves the exchange rate for a specific currency.
-     * Required by assignment: "Add a method for retrieving the exchange rate of a currency"
-     *
-     * @param abbreviation The currency abbreviation (e.g., "EUR", "USD")
-     * @return The exchange rate to USD
-     * @throws RuntimeException if currency not found or database error occurs
-     */
-    public double getExchangeRate(String abbreviation) {
-        String sql = "SELECT rate_to_usd FROM currency WHERE abbreviation = ?";
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, abbreviation);
-
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return rs.getDouble("rate_to_usd");
-                }
-                throw new RuntimeException("Currency not found: " + abbreviation);
-            }
-
-        } catch (SQLException e) {
-            throw new RuntimeException("Error fetching exchange rate for " + abbreviation + ": " + e.getMessage(), e);
-        }
-    }
-
-    /**
-     * Retrieves all currencies from the database.
-     *
-     * @return List of all currencies ordered by abbreviation
-     * @throws RuntimeException if database error occurs
-     */
-    public List<Currency> getAllCurrencies() {
-        List<Currency> currencies = new ArrayList<>();
-        String sql = "SELECT abbreviation, name, rate_to_usd FROM currency ORDER BY abbreviation";
-
-        try (Connection conn = getConnection();
-             Statement stmt = conn.createStatement();
-             ResultSet rs = stmt.executeQuery(sql)) {
-
-            while (rs.next()) {
-                String abbr = rs.getString("abbreviation");
-                if (abbr != null) {
-                    abbr = abbr.trim();
-                }
-                String name = rs.getString("name");
-                double rate = rs.getDouble("rate_to_usd");
-                currencies.add(new Currency(abbr, name, rate));
-            }
-
-        } catch (SQLException e) {
-            throw new RuntimeException("Error fetching currencies: " + e.getMessage(), e);
-        }
-
-        return currencies;
-    }
-
-    /**
-     * Updates the exchange rate for a specific currency.
-     *
-     * @param abbreviation The currency abbreviation
-     * @param newRate The new exchange rate to USD
-     * @throws RuntimeException if currency not found or database error occurs
-     */
     public void updateCurrencyRate(String abbreviation, double newRate) {
-        String sql = "UPDATE currency SET rate_to_usd = ? WHERE abbreviation = ?";
-
-        try (Connection conn = getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            conn.setAutoCommit(false);
-
-            stmt.setDouble(1, newRate);
-            stmt.setString(2, abbreviation);
-            int affectedRows = stmt.executeUpdate();
-
-            conn.commit();
-
-            if (affectedRows == 0) {
+        executeWithTransaction(em -> {
+            Currency currency = em.find(Currency.class, abbreviation);
+            if (currency == null) {
                 throw new RuntimeException("Currency not found: " + abbreviation);
             }
+            currency.setRateToUSD(newRate);
+            return null;
+        });
+    }
 
-        } catch (SQLException e) {
-            throw new RuntimeException("Error updating rate for " + abbreviation + ": " + e.getMessage(), e);
+    public void insertCurrency(Currency currency) {
+        executeWithTransaction(em -> {
+            if (em.find(Currency.class, currency.getAbbreviation()) != null) {
+                throw new RuntimeException("Currency " + currency.getAbbreviation() + " already exists");
+            }
+            em.persist(currency);
+            return null;
+        });
+    }
+
+    public boolean currencyExists(String abbreviation) {
+        return executeReadOnly(em -> em.find(Currency.class, abbreviation) != null);
+    }
+
+    @FunctionalInterface
+    private interface DAOOperation<T> {
+        T execute(EntityManager em);
+    }
+
+    public void close() {
+        if (emf != null && emf.isOpen()) {
+            emf.close();
         }
     }
 }

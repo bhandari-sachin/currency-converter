@@ -21,6 +21,7 @@ public class CurrencyView {
     private TextField amountField;
     private TextField newRateField;
     private Label resultLabel;
+    private Button addCurrencyButton;
 
     public void setController(CurrencyController controller) {
         this.controller = controller;
@@ -72,7 +73,7 @@ public class CurrencyView {
      * @param stage The primary stage
      */
     public void start(Stage stage) {
-        stage.setTitle("💱 Currency Converter (PostgreSQL + MVC)");
+        stage.setTitle("💱 Currency Converter (JPA + MVC)");
 
         // Initialize UI components FIRST
         fromCurrencyBox = new ComboBox<>();
@@ -80,6 +81,7 @@ public class CurrencyView {
         amountField = new TextField();
         newRateField = new TextField();
         resultLabel = new Label("Converted amount will appear here");
+        addCurrencyButton = new Button("Add New Currency");
 
         Button convertButton = new Button("Convert");
         Button updateRateButton = new Button("Update Rate");
@@ -89,6 +91,7 @@ public class CurrencyView {
         convertButton.setOnAction(e -> onConvert());
         updateRateButton.setOnAction(e -> onUpdateRate());
         refreshButton.setOnAction(e -> onRefresh());
+        addCurrencyButton.setOnAction(e -> onAddCurrency());
 
         // Set prompt texts
         amountField.setPromptText("Enter amount");
@@ -115,11 +118,17 @@ public class CurrencyView {
         grid.add(resultLabel, 1, 3, 2, 1);
 
         // Update rate section
-        grid.add(new Label("Update Rate (for selected From currency):"), 0, 5, 2, 1);
-        grid.add(newRateField, 1, 5);
-        grid.add(updateRateButton, 1, 6);
+        grid.add(new Separator(), 0, 5, 3, 1);
+        grid.add(new Label("Update Rate:"), 0, 6, 2, 1);
+        grid.add(newRateField, 1, 6);
+        grid.add(updateRateButton, 1, 7);
 
-        Scene scene = new Scene(grid, 520, 350);
+        // Currency management section
+        grid.add(new Separator(), 0, 9, 3, 1);
+        grid.add(new Label("Currency Management:"), 0, 10, 2, 1);
+        grid.add(addCurrencyButton, 0, 11);
+
+        Scene scene = new Scene(grid, 520, 450); // Increased height for new sections
         stage.setScene(scene);
 
         // NOW initialize the currencies after UI is fully set up
@@ -212,6 +221,25 @@ public class CurrencyView {
     }
 
     /**
+     * Handles the add currency button action.
+     * Opens the AddCurrencyView window for adding new currencies.
+     */
+    private void onAddCurrency() {
+        try {
+            // This will open the AddCurrencyView window and wait for it to close
+            controller.showAddCurrencyWindow();
+
+            // After the AddCurrencyView window closes, refresh the currency list
+            // to show any newly added currencies in the dropdowns
+            controller.refreshCurrencies();
+            resultLabel.setText("✅ Currency list updated with new currencies");
+
+        } catch (Exception ex) {
+            showError("Error adding currency: " + ex.getMessage());
+        }
+    }
+
+    /**
      * Displays an error message in the UI.
      *
      * @param message The error message to display
@@ -232,5 +260,20 @@ public class CurrencyView {
         alert.setHeaderText("Cannot connect to database");
         alert.setContentText(message + "\n\nPlease check your database connection and try again.");
         alert.showAndWait();
+    }
+
+    /**
+     * Gets the current selected from currency.
+     * This can be useful for the AddCurrencyView to set default values.
+     */
+    public Currency getSelectedFromCurrency() {
+        return fromCurrencyBox.getValue();
+    }
+
+    /**
+     * Gets the current selected to currency.
+     */
+    public Currency getSelectedToCurrency() {
+        return toCurrencyBox.getValue();
     }
 }

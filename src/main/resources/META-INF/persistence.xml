@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence version="3.0" xmlns="https://jakarta.ee/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="https://jakarta.ee/xml/ns/persistence https://jakarta.ee/xml/ns/persistence/persistence_3_0.xsd">
+
+    <persistence-unit name="currency_pu" transaction-type="RESOURCE_LOCAL">
+        <description>Currency Converter JPA Configuration</description>
+
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+        <class>fi.metropolia.currency_converter.model.Currency</class>
+
+        <properties>
+            <!-- Database connection - using placeholders from system properties -->
+            <property name="jakarta.persistence.jdbc.url" value="${db.url}"/>
+            <property name="jakarta.persistence.jdbc.user" value="${db.user}"/>
+            <property name="jakarta.persistence.jdbc.password" value="${db.password}"/>
+            <property name="jakarta.persistence.jdbc.driver" value="org.postgresql.Driver"/>
+
+            <!-- Hibernate settings -->
+            <property name="hibernate.dialect" value="org.hibernate.dialect.PostgreSQLDialect"/>
+            <property name="hibernate.show_sql" value="true"/> <!-- Changed to true for debugging -->
+            <property name="hibernate.format_sql" value="true"/>
+
+            <!-- Schema validation -->
+            <property name="jakarta.persistence.schema-generation.database.action" value="none"/>
+
+
+        </properties>
+    </persistence-unit>
+</persistence>

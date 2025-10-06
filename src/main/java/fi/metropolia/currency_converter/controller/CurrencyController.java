@@ -1,16 +1,18 @@
+// CurrencyController.java (updated)
 package fi.metropolia.currency_converter.controller;
 
 import fi.metropolia.currency_converter.model.Currency;
 import fi.metropolia.currency_converter.model.CurrencyModel;
+import fi.metropolia.currency_converter.view.AddCurrencyView;
 import fi.metropolia.currency_converter.view.CurrencyView;
 
 /**
  * Controller class handling user interactions and coordinating between Model and View.
- * Implements the MVC pattern as required by the assignment.
  */
 public class CurrencyController {
     private final CurrencyModel model;
     private final CurrencyView view;
+    private AddCurrencyView addCurrencyView;
 
     public CurrencyController(CurrencyModel model, CurrencyView view) {
         this.model = model;
@@ -18,9 +20,6 @@ public class CurrencyController {
         view.setController(this);
     }
 
-    /**
-     * Refreshes the currency list in the view.
-     */
     public void refreshCurrencies() {
         try {
             view.populateCurrencies(model.getCurrencies());
@@ -29,45 +28,45 @@ public class CurrencyController {
         }
     }
 
-    /**
-     * Converts an amount between two currencies.
-     * Uses exchange rates fetched from the database via the model.
-     *
-     * @param amount The amount to convert
-     * @param from The source currency
-     * @param to The target currency
-     * @return The converted amount
-     */
     public double convert(double amount, Currency from, Currency to) {
         return model.convert(amount, from, to);
     }
 
-    /**
-     * Updates the exchange rate for a currency.
-     *
-     * @param abbreviation The currency abbreviation
-     * @param newRate The new exchange rate
-     */
     public void updateCurrencyRate(String abbreviation, double newRate) {
         model.updateCurrencyRate(abbreviation, newRate);
         refreshCurrencies();
     }
 
-    /**
-     * Gets the exchange rate for a specific currency.
-     * This method uses the DAO method as required by the assignment:
-     * "Your Controller class uses the aforementioned method to successfully fetch the exchange rate"
-     *
-     * @param abbreviation The currency abbreviation
-     * @return The exchange rate to USD
-     */
     public double getExchangeRate(String abbreviation) {
         return model.getExchangeRate(abbreviation);
     }
 
     /**
-     * Initializes the controller after view is ready.
+     * Opens the add currency window.
      */
+    public void showAddCurrencyWindow() {
+        if (addCurrencyView == null) {
+            addCurrencyView = new AddCurrencyView(this);
+        }
+        addCurrencyView.showAndWait();
+        // Refresh currencies after the add window closes
+        refreshCurrencies();
+    }
+
+    /**
+     * Inserts a new currency into the database.
+     */
+    public void insertCurrency(Currency currency) {
+        model.insertCurrency(currency);
+    }
+
+    /**
+     * Checks if a currency with the given abbreviation already exists.
+     */
+    public boolean currencyExists(String abbreviation) {
+        return model.currencyExists(abbreviation);
+    }
+
     public void initialize() {
         refreshCurrencies();
     }
