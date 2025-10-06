@@ -1,4 +1,4 @@
-package fi.metropolia.dictionary.model;
+package fi.metropolia.currency_converter.model;
 
 import java.util.List;
 

@@ -1,8 +1,8 @@
-package fi.metropolia.dictionary;
+package fi.metropolia.currency_converter;
 
-import fi.metropolia.dictionary.controller.CurrencyController;
-import fi.metropolia.dictionary.model.CurrencyModel;
-import fi.metropolia.dictionary.view.CurrencyView;
+import fi.metropolia.currency_converter.controller.CurrencyController;
+import fi.metropolia.currency_converter.model.CurrencyModel;
+import fi.metropolia.currency_converter.view.CurrencyView;
 import javafx.application.Application;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;

@@ -1,4 +1,4 @@
-package fi.metropolia.dictionary.model.config;
+package fi.metropolia.currency_converter.model.config;
 
 
 

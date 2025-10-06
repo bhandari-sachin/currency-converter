@@ -1,6 +1,6 @@
-package fi.metropolia.dictionary.model;
+package fi.metropolia.currency_converter.model;
 
-import fi.metropolia.dictionary.model.config.DatabaseConfig;
+import fi.metropolia.currency_converter.model.config.DatabaseConfig;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;

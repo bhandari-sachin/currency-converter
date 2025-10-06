@@ -1,8 +1,8 @@
-package fi.metropolia.dictionary.controller;
+package fi.metropolia.currency_converter.controller;
 
-import fi.metropolia.dictionary.model.Currency;
-import fi.metropolia.dictionary.model.CurrencyModel;
-import fi.metropolia.dictionary.view.CurrencyView;
+import fi.metropolia.currency_converter.model.Currency;
+import fi.metropolia.currency_converter.model.CurrencyModel;
+import fi.metropolia.currency_converter.view.CurrencyView;
 
 public class CurrencyController {
     private final CurrencyModel model;
