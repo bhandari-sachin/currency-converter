@@ -7,25 +7,80 @@ import javafx.application.Application;
 import javafx.scene.control.Alert;
 import javafx.stage.Stage;
 
+/**
+ * Main application class for the Currency Converter.
+ * Implements MVC pattern with database integration.
+ */
 public class Main extends Application {
+
     @Override
     public void start(Stage stage) {
+        CurrencyView view = null;
+
         try {
+            // Initialize model (connects to database)
             CurrencyModel model = new CurrencyModel();
-            CurrencyView view = new CurrencyView();
+
+            // Initialize view
+            view = new CurrencyView();
+
+            // Initialize controller (connects model and view)
             CurrencyController controller = new CurrencyController(model, view);
 
-            // Set controller first, then start the view
-            view.setController(controller);
+            // Start the view
             view.start(stage);
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
+            // Log error to console
             System.err.println("Failed to start application: " + e.getMessage());
             e.printStackTrace();
-            showErrorDialog("Application failed to start: " + e.getMessage());
+
+            // Show error dialog to user (Assignment requirement #6)
+            showDatabaseErrorDialog(e.getMessage());
+
+            // If view was created, show error there too
+            if (view != null) {
+                view.showDatabaseError(e.getMessage());
+            }
+
+            // Exit application as we cannot function without database
+            System.exit(1);
+        } catch (Exception e) {
+            System.err.println("Unexpected error: " + e.getMessage());
+            e.printStackTrace();
+            showErrorDialog("An unexpected error occurred: " + e.getMessage());
+            System.exit(1);
         }
     }
 
+    /**
+     * Shows an error dialog when database connection fails.
+     * This fulfills assignment requirement #6:
+     * "Your application displays an appropriate error message in the user interface
+     * if the database is not available."
+     *
+     * @param message The error message
+     */
+    private void showDatabaseErrorDialog(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Database Connection Error");
+        alert.setHeaderText("Cannot connect to the database");
+        alert.setContentText(
+                "The application cannot start because the database is unavailable.\n\n" +
+                        "Error: " + message + "\n\n" +
+                        "Please check:\n" +
+                        "- PostgreSQL server is running\n" +
+                        "- Database connection settings in database.properties\n" +
+                        "- Network connectivity"
+        );
+        alert.showAndWait();
+    }
+
+    /**
+     * Shows a general error dialog.
+     *
+     * @param message The error message
+     */
     private void showErrorDialog(String message) {
         Alert alert = new Alert(Alert.AlertType.ERROR);
         alert.setTitle("Application Error");

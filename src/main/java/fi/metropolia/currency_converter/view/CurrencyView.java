@@ -10,6 +10,10 @@ import javafx.stage.Stage;
 
 import java.util.List;
 
+/**
+ * View class for the Currency Converter application.
+ * Handles all UI components and user interactions.
+ */
 public class CurrencyView {
     private CurrencyController controller;
     private ComboBox<Currency> fromCurrencyBox;
@@ -22,32 +26,51 @@ public class CurrencyView {
         this.controller = controller;
     }
 
+    /**
+     * Populates the currency dropdowns with data from the model.
+     *
+     * @param currencies List of currencies to display
+     */
     public void populateCurrencies(List<Currency> currencies) {
         // Check if UI components are initialized
         if (fromCurrencyBox == null || toCurrencyBox == null) {
-            return; // Exit early if components not ready
+            return;
         }
 
+        // Save current selections
         Currency currentFrom = fromCurrencyBox.getValue();
         Currency currentTo = toCurrencyBox.getValue();
 
+        // Update items
         fromCurrencyBox.getItems().setAll(currencies);
         toCurrencyBox.getItems().setAll(currencies);
 
         // Restore selections if possible
         if (currentFrom != null) {
-            fromCurrencyBox.getSelectionModel().select(currentFrom);
+            // Find matching currency by abbreviation
+            currencies.stream()
+                    .filter(c -> c.getAbbreviation().equals(currentFrom.getAbbreviation()))
+                    .findFirst()
+                    .ifPresent(c -> fromCurrencyBox.getSelectionModel().select(c));
         } else if (!currencies.isEmpty()) {
             fromCurrencyBox.getSelectionModel().selectFirst();
         }
 
         if (currentTo != null) {
-            toCurrencyBox.getSelectionModel().select(currentTo);
+            currencies.stream()
+                    .filter(c -> c.getAbbreviation().equals(currentTo.getAbbreviation()))
+                    .findFirst()
+                    .ifPresent(c -> toCurrencyBox.getSelectionModel().select(c));
         } else if (currencies.size() > 1) {
             toCurrencyBox.getSelectionModel().select(1);
         }
     }
 
+    /**
+     * Starts the application UI.
+     *
+     * @param stage The primary stage
+     */
     public void start(Stage stage) {
         stage.setTitle("💱 Currency Converter (PostgreSQL + MVC)");
 
@@ -62,6 +85,7 @@ public class CurrencyView {
         Button updateRateButton = new Button("Update Rate");
         Button refreshButton = new Button("Refresh Currencies");
 
+        // Set button actions
         convertButton.setOnAction(e -> onConvert());
         updateRateButton.setOnAction(e -> onUpdateRate());
         refreshButton.setOnAction(e -> onRefresh());
@@ -70,6 +94,7 @@ public class CurrencyView {
         amountField.setPromptText("Enter amount");
         newRateField.setPromptText("Enter new rate");
 
+        // Create layout
         GridPane grid = new GridPane();
         grid.setPadding(new Insets(15));
         grid.setHgap(10);
@@ -78,42 +103,41 @@ public class CurrencyView {
         // Conversion section
         grid.add(new Label("From:"), 0, 0);
         grid.add(fromCurrencyBox, 1, 0);
-        grid.add(new Label("To:"), 0, 1);
-        grid.add(toCurrencyBox, 1, 1);
-        grid.add(new Label("Amount:"), 0, 2);
-        grid.add(amountField, 1, 2);
-        grid.add(convertButton, 0, 3);
-        grid.add(resultLabel, 1, 3);
-
         grid.add(refreshButton, 2, 0);
 
+        grid.add(new Label("To:"), 0, 1);
+        grid.add(toCurrencyBox, 1, 1);
+
+        grid.add(new Label("Amount:"), 0, 2);
+        grid.add(amountField, 1, 2);
+
+        grid.add(convertButton, 0, 3);
+        grid.add(resultLabel, 1, 3, 2, 1);
+
         // Update rate section
-        grid.add(new Label("Update Rate (for selected From currency):"), 0, 5);
+        grid.add(new Label("Update Rate (for selected From currency):"), 0, 5, 2, 1);
         grid.add(newRateField, 1, 5);
         grid.add(updateRateButton, 1, 6);
 
-        stage.setScene(new Scene(grid, 520, 350));
+        Scene scene = new Scene(grid, 520, 350);
+        stage.setScene(scene);
 
         // NOW initialize the currencies after UI is fully set up
         if (controller != null) {
-            controller.refreshCurrencies();
+            controller.initialize();
         }
 
         stage.show();
-
-        // Set close handler
-        stage.setOnCloseRequest(e -> {
-            if (controller != null) {
-                controller.cleanup();
-            }
-        });
     }
 
+    /**
+     * Handles the convert button action.
+     */
     private void onConvert() {
         try {
             String amountText = amountField.getText().trim();
             if (amountText.isEmpty()) {
-                resultLabel.setText("⚠️ Please enter an amount.");
+                showError("Please enter an amount.");
                 return;
             }
 
@@ -122,12 +146,12 @@ public class CurrencyView {
             Currency to = toCurrencyBox.getValue();
 
             if (from == null || to == null) {
-                resultLabel.setText("⚠️ Please select both currencies.");
+                showError("Please select both currencies.");
                 return;
             }
 
             if (from.equals(to)) {
-                resultLabel.setText("⚠️ Please select different currencies.");
+                showError("Please select different currencies.");
                 return;
             }
 
@@ -136,25 +160,28 @@ public class CurrencyView {
                     amount, from.getAbbreviation(), result, to.getAbbreviation()));
 
         } catch (NumberFormatException ex) {
-            resultLabel.setText("⚠️ Please enter a valid numeric amount.");
+            showError("Please enter a valid numeric amount.");
         } catch (IllegalArgumentException ex) {
-            resultLabel.setText("❌ " + ex.getMessage());
+            showError(ex.getMessage());
         } catch (Exception ex) {
-            resultLabel.setText("❌ Conversion error: " + ex.getMessage());
+            showError("Conversion error: " + ex.getMessage());
         }
     }
 
+    /**
+     * Handles the update rate button action.
+     */
     private void onUpdateRate() {
         try {
             Currency selected = fromCurrencyBox.getValue();
             if (selected == null) {
-                resultLabel.setText("⚠️ Please select a currency to update.");
+                showError("Please select a currency to update.");
                 return;
             }
 
             String rateText = newRateField.getText().trim();
             if (rateText.isEmpty()) {
-                resultLabel.setText("⚠️ Please enter a new rate.");
+                showError("Please enter a new rate.");
                 return;
             }
 
@@ -164,20 +191,46 @@ public class CurrencyView {
             newRateField.clear();
 
         } catch (NumberFormatException ex) {
-            resultLabel.setText("⚠️ Please enter a valid numeric rate.");
+            showError("Please enter a valid numeric rate.");
         } catch (IllegalArgumentException ex) {
-            resultLabel.setText("❌ " + ex.getMessage());
+            showError(ex.getMessage());
         } catch (Exception ex) {
-            resultLabel.setText("❌ Update error: " + ex.getMessage());
+            showError("Update error: " + ex.getMessage());
         }
     }
 
+    /**
+     * Handles the refresh button action.
+     */
     private void onRefresh() {
         try {
             controller.refreshCurrencies();
             resultLabel.setText("✅ Currency list refreshed");
         } catch (Exception ex) {
-            resultLabel.setText("❌ Refresh error: " + ex.getMessage());
+            showError("Refresh error: " + ex.getMessage());
         }
+    }
+
+    /**
+     * Displays an error message in the UI.
+     *
+     * @param message The error message to display
+     */
+    private void showError(String message) {
+        resultLabel.setText("⚠️ " + message);
+    }
+
+    /**
+     * Displays an error message to the user when database is unavailable.
+     * Required by assignment point 6.
+     *
+     * @param message The error message
+     */
+    public void showDatabaseError(String message) {
+        Alert alert = new Alert(Alert.AlertType.ERROR);
+        alert.setTitle("Database Error");
+        alert.setHeaderText("Cannot connect to database");
+        alert.setContentText(message + "\n\nPlease check your database connection and try again.");
+        alert.showAndWait();
     }
 }
