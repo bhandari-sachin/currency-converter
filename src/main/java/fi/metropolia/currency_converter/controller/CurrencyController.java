@@ -1,4 +1,3 @@
-// CurrencyController.java (updated)
 package fi.metropolia.currency_converter.controller;
 
 import fi.metropolia.currency_converter.model.Currency;

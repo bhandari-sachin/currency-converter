@@ -1,10 +1,13 @@
 package fi.metropolia.currency_converter.dao;
 
+import fi.metropolia.currency_converter.datasource.DatabaseConfig;
 import fi.metropolia.currency_converter.model.Currency;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Data Access Object for Currency entities using JPA.
@@ -19,13 +22,27 @@ public class CurrencyDAO {
             synchronized (CurrencyDAO.class) {
                 if (emf == null) {
                     try {
-                        emf = Persistence.createEntityManagerFactory("currency_pu");
+                        // Create properties map with database configuration
+                        Map<String, String> properties = new HashMap<>();
+                        properties.put("jakarta.persistence.jdbc.url", DatabaseConfig.getUrl());
+                        properties.put("jakarta.persistence.jdbc.user", DatabaseConfig.getUser());
+                        properties.put("jakarta.persistence.jdbc.password", DatabaseConfig.getPassword());
+
+                        emf = Persistence.createEntityManagerFactory("currency_pu", properties);
                     } catch (Exception e) {
                         throw new RuntimeException("Failed to create EntityManagerFactory: " + e.getMessage(), e);
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Gets the EntityManagerFactory instance.
+     * This allows other DAOs to share the same factory.
+     */
+    public static EntityManagerFactory getEntityManagerFactory() {
+        return emf;
     }
 
     private <T> T executeWithTransaction(DAOOperation<T> operation) {
@@ -105,7 +122,7 @@ public class CurrencyDAO {
         T execute(EntityManager em);
     }
 
-    public void close() {
+    public static void close() {
         if (emf != null && emf.isOpen()) {
             emf.close();
         }

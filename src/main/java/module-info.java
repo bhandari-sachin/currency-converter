@@ -2,11 +2,14 @@ module fi.metropolia.currency_converter {
     // JavaFX
     requires javafx.controls;
     requires javafx.fxml;
+    requires javafx.graphics; // optional, but safe to include
 
     // JPA / Hibernate
     requires jakarta.persistence;
     requires org.hibernate.orm.core;
     requires java.sql;
+
+    // Logging
     requires org.slf4j;
 
     // Open packages for reflection
@@ -14,7 +17,7 @@ module fi.metropolia.currency_converter {
     opens fi.metropolia.currency_converter to javafx.fxml;
     opens fi.metropolia.currency_converter.controller to javafx.fxml;
 
-    // Export packages that other modules or FXML need
+    // Exported packages
     exports fi.metropolia.currency_converter;
     exports fi.metropolia.currency_converter.model;
     exports fi.metropolia.currency_converter.controller;
