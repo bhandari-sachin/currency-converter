@@ -35,7 +35,7 @@ public class CurrencyModel {
             throw new IllegalArgumentException("Exchange rates must be positive");
         }
 
-        return amount * (to.getRateToUSD() / from.getRateToUSD());
+        return amount * (from.getRateToUSD() / to.getRateToUSD());
     }
 
     public void updateCurrencyRate(String abbreviation, double newRate) {
